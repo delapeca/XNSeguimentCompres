@@ -86,10 +86,13 @@ namespace XNSeguimentCompres.UI
                 while (_cbOk.ValidValues.Count > 0)
                     _cbOk.ValidValues.Remove(0, SAPbouiCOM.BoSearchKey.psk_Index);
 
-                _cbOk.ValidValues.Add("ADDNEW", "Afegir i Nou");
-                _cbOk.ValidValues.Add("ADDVIEW", "Afegir i Veure");
-                _cbOk.ValidValues.Add("ADDCLOSE", "Afegir i Tancar");
-                _cbOk.Select("ADDNEW", BoSearchKey.psk_ByValue);
+                _cbOk.ValidValues.Add("1", "Afegir i Nou");
+                _cbOk.ValidValues.Add("2", "Afegir i Veure");
+                _cbOk.ValidValues.Add("3", "Afegir i Tancar");
+                _cbOk.Select("1", BoSearchKey.psk_ByValue);
+
+                // Establir que només es mostri la descripció
+                _cbOk.ExpandType = SAPbouiCOM.BoExpandType.et_DescriptionOnly;
 
                 _form.Items.Item("1").Visible = false;
                 _form.Items.Item("cbOkAct").Visible = true;
@@ -103,7 +106,7 @@ namespace XNSeguimentCompres.UI
                 //--------------------------------------------------------------
                 try
                 {
-                    _cbOk.Select("ADDNEW", BoSearchKey.psk_ByValue);
+                    _cbOk.Select("1", BoSearchKey.psk_ByValue);
                     _cbOk.Caption = _cbOk.Selected.Description;
                 }
                 catch

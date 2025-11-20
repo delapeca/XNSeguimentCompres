@@ -9,6 +9,11 @@ namespace XNSeguimentCompres
     internal static class Program
     {
         // ------------------------------------------------------------
+        // Adreça del repositori GitHub
+        // ------------------------------------------------------------
+        // https://github.com/delapeca/XNSeguimentCompres.git
+
+        // ------------------------------------------------------------
         // Context SAP i instàncies principals
         // ------------------------------------------------------------
         private static SapContext ctx;

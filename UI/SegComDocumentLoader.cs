@@ -78,14 +78,12 @@ namespace XNSeguimentCompres.UI
                 // Actualitzar matriu UI i focus
                 // ──────────────────────────
                 _mtx.LoadFromDataSource();
-                
 
-                // Focus a descripció de la línia nova 🎯
-                if (_mtx.RowCount > 0)
-                {
-                    ((SAPbouiCOM.EditText)_mtx.Columns.Item("cDesc")
-                        .Cells.Item(_mtx.RowCount).Specific).Active = true;
-                }
+                //// Focus a descripció de la línia nova 🎯
+                //if (_mtx.RowCount > 0)
+                //{
+                //    ((SAPbouiCOM.EditText)_mtx.Columns.Item("cDesc").Cells.Item(_mtx.RowCount).Specific).Active = true;
+                //}
 
                 // Per mostrar botons correctes
                 _form.Mode = BoFormMode.fm_OK_MODE;

@@ -49,8 +49,8 @@ namespace XNSeguimentCompres.UI
         private Matrix _mtx;
         private SAPButton _btOk;
         private SAPButton _btCancel;
-        //private SAPbouiCOM.ButtonCombo _cbOk;
-        private SAPbouiCOM.ComboBox _cbOk;
+        private SAPbouiCOM.ButtonCombo _cbOk;
+        
 
         /// <summary>
         /// Constructor
@@ -187,8 +187,8 @@ namespace XNSeguimentCompres.UI
                 // 📌 11️⃣ Loader per carregar documents existents
                 _loader = new SegComDocumentLoader(_query, _form, _dsHead, _dsLines, _mtx);
 
-                // Bloc combo OK ha d'ignorar mode
-                _form.Items.Item("cbOkAct").AffectsFormMode = false;
+                //// Bloc combo OK ha d'ignorar mode
+                //_form.Items.Item("cbOkAct").AffectsFormMode = false;
             }
             finally
             {
@@ -250,19 +250,29 @@ namespace XNSeguimentCompres.UI
         private void SetupOkCombo()
         {
             // 🔹 Netejar opcions existents
-            ClearValidValues(_cbOk.ValidValues);
+            //ClearValidValues(_cbOk.ValidValues);
 
             // 🔹 Afegim només descripcions (el Value queda intern)
-            _cbOk.ValidValues.Add("ADDNEW", "Afegir i Nou");
-            _cbOk.ValidValues.Add("ADDVIEW", "Afegir i Veure");
-            _cbOk.ValidValues.Add("ADDCLOSE", "Afegir i Tancar");
+            _cbOk.ValidValues.Add("1", "Afegir i Nou");
+            _cbOk.ValidValues.Add("2", "Afegir i Veure");
+            _cbOk.ValidValues.Add("3", "Afegir i Tancar");
 
             // 🔹 Selecció per defecte: Afegir i Nou
-            _cbOk.Select("ADDNEW", BoSearchKey.psk_ByValue);
+            _cbOk.Select("1", BoSearchKey.psk_ByValue);
 
-            // 🔹 Caption visible ha de ser sempre la descripció
-            if (_cbOk.Selected != null)
-                _cbOk.Caption = _cbOk.Selected.Description;
+            // Establir que només es mostri la descripció
+            _cbOk.ExpandType = SAPbouiCOM.BoExpandType.et_DescriptionOnly;
+
+            // 🔒 Evitar esdeveniments automàtics durant setup
+            try
+            {
+                _cbOk.Item.Click(); // força actualització interna del control
+            }
+            catch { }
+
+            // 🔹 Mostrar correctament el text seleccionat al botó
+            //_cbOk.Caption = _cbOk.Selected.Description;
+            
 
         }
 
@@ -359,7 +369,27 @@ namespace XNSeguimentCompres.UI
                 return;
             }
 
-            
+            // ─────────────────────────────────────────────────────────────
+            // 2️⃣ COMBO_SELECT → EXECUCIÓ DIRECTA DE L'ACCIÓ SELECCIONADA
+            // ─────────────────────────────────────────────────────────────
+            if (pVal.EventType == BoEventTypes.et_COMBO_SELECT &&
+                pVal.ItemUID == "cbOkAct" &&
+                !pVal.Before_Action)
+            {
+                // Protecció nulls
+                if (_cbOk == null || _cbOk.Selected == null)
+                {
+                    _cbOk.Select("1", BoSearchKey.psk_ByValue);
+                }
+
+                string optValue = _cbOk.Selected.Value;
+                string optDesc = _cbOk.Selected.Description;
+
+                // EXECUTAR ACCIÓ DIRECTAMENT AMB L'OPCIÓ CORRECTA
+                HandleOkAction(optValue);
+                BubbleEvent = false;
+                return;
+            }
 
             // ─────────────────────────────────────────────────────────────
             // 3️⃣ EXECUCIÓ DE GUARDAR → ITEM_PRESSED en boto combo
@@ -370,7 +400,7 @@ namespace XNSeguimentCompres.UI
                 if (_cbOk.Selected == null)
                 {
                     Logger.Log("ERROR: cbOkAct.ItemPressed sense Selected → Assigno ADDNEW");
-                    _cbOk.Select("ADDNEW", BoSearchKey.psk_ByValue);
+                    _cbOk.Select("1", BoSearchKey.psk_ByValue);
                 }
 
                 Logger.Log($"ITEM_PRESSED cbOkAct → Executant HandleOkAction({_cbOk.Selected.Value})");
@@ -579,6 +609,63 @@ namespace XNSeguimentCompres.UI
                 }
                 return;
             }
+
+            // ─────────────────────────────────────────────────────────────
+            // 8️⃣ Selecció d’estat de línia → assignar data d’estat i
+            //     crear nova línia automàticament si cal.
+            // ─────────────────────────────────────────────────────────────
+            if (pVal.EventType == BoEventTypes.et_COMBO_SELECT &&
+                pVal.ItemUID == "mtxLinies" &&
+                pVal.ColUID == "cStatus" &&
+                !pVal.Before_Action)
+            {
+                int curRowUI = pVal.Row;
+                int curRowDS = curRowUI - 1;
+                int nextRowUI = curRowUI + 1;
+
+                _form.Freeze(true);
+                try
+                {
+                    _mtx.FlushToDataSource();
+
+                    DateTime now = DateTime.Now;
+
+                    // Guarda en format tècnic per BD
+                    _dsLines.SetValue("U_StatusDate", curRowDS, now.ToString("yyyyMMdd HH:mm"));
+
+                    int last = _dsLines.Size - 1;
+                    if (curRowDS == last)
+                    {
+                        _dsLines.InsertRecord(last + 1);
+                        _dsLines.SetValue("U_LineOrder", last + 1, (last + 2).ToString());
+
+                        // Estat per defecte = pendent
+                        _dsLines.SetValue("U_LineStatus", last + 1, "0");
+
+                        nextRowUI = curRowUI + 1;
+                    }
+
+                    _mtx.LoadFromDataSource();
+
+                    // Conversió a format amigable per UI (dd/MM/yyyy HH:mm)
+                    ((EditText)_mtx.Columns.Item("cStatDate")
+                        .Cells.Item(curRowUI).Specific).Value =
+                        now.ToString("dd/MM/yyyy HH:mm");
+                }
+                finally
+                {
+                    _form.Freeze(false);
+                }
+
+                if (nextRowUI <= _mtx.RowCount)
+                {
+                    ((EditText)_mtx.Columns.Item("cDesc")
+                        .Cells.Item(nextRowUI).Specific).Active = true;
+                }
+
+                return;
+            }
+
         }
 
 
@@ -1126,8 +1213,12 @@ namespace XNSeguimentCompres.UI
         /// - Aplica l’acció seleccionada al combo (Afegir i nou / veure / tancar)
         /// </summary>
         /// 
-        private void HandleOkAction()
+        private void HandleOkAction(string action = null)
         {
+            // 🔐 Determinar acció real
+            string selectedAction = action ?? _cbOk.Selected?.Value ?? "1";
+            Logger.Log($"HandleOkAction() iniciada → acció seleccionada = {selectedAction}");
+
             try
             {
                 // 🛑 DESACTIVAR EVENTS per evitar bucle ADD
@@ -1222,18 +1313,18 @@ namespace XNSeguimentCompres.UI
                         BoMessageTime.bmt_Short,
                         BoStatusBarMessageType.smt_Warning);
 
-                    _cbOk.Select("ADDNEW", BoSearchKey.psk_ByValue);
+                    _cbOk.Select("1", BoSearchKey.psk_ByValue);
                 }
 
                 // 🔀 Accions combo
-                switch (_cbOk.Selected.Value)
+                switch (selectedAction)
                 {
-                    case "ADDNEW":
+                    case "1":
                         _mode.SetNuevo();
                         UpdateOkUiByMode();
                         break;
 
-                    case "ADDVIEW":
+                    case "2":
                         // ⬇️ Breakpoint B aquí
                         Logger.Log($"ADDVIEW selected → newDocEntry = {newDocEntry}");
 
@@ -1249,8 +1340,9 @@ namespace XNSeguimentCompres.UI
 
                         break;
 
-                    case "ADDCLOSE":
+                    case "3":
                         _form.Close();
+                        return;
                         break;
                 }
 
