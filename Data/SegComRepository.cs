@@ -99,20 +99,20 @@ namespace XNSeguimentCompres.Data
             }
 
             try
-{
-    var res = udo.Add(head);
-    return Convert.ToInt32(res.GetProperty("DocEntry"));
-}
-catch (Exception ex)
-{
-    var debugMsg = $"[ERROR ADD] {ex.Message}\n" +
-                   $"CardCode={h.CardCode}, CardName={h.CardName}, " +
-                   $"NumAtCard={h.NumAtCard}, DocDate={h.DocDate}, " +
-                   $"Status={h.Status}, BaseEntry={h.BaseEntry}, BaseNum={h.BaseNum}";
+            {
+                var res = udo.Add(head);
+                return Convert.ToInt32(res.GetProperty("DocEntry"));
+            }
+            catch (Exception ex)
+            {
+                var debugMsg = $"[ERROR ADD] {ex.Message}\n" +
+                                $"CardCode={h.CardCode}, CardName={h.CardName}, " +
+                                $"NumAtCard={h.NumAtCard}, DocDate={h.DocDate}, " +
+                                $"Status={h.Status}, BaseEntry={h.BaseEntry}, BaseNum={h.BaseNum}";
 
-    System.Diagnostics.Debug.WriteLine(debugMsg);
-    throw new Exception($"SAP Error Add(): {ex.Message}");
-}
+                System.Diagnostics.Debug.WriteLine(debugMsg);
+                throw new Exception($"SAP Error Add(): {ex.Message}");
+            }
 
         }
 

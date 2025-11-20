@@ -49,7 +49,8 @@ namespace XNSeguimentCompres.UI
         private Matrix _mtx;
         private SAPButton _btOk;
         private SAPButton _btCancel;
-        private SAPbouiCOM.ButtonCombo _cbOk;
+        //private SAPbouiCOM.ButtonCombo _cbOk;
+        private SAPbouiCOM.ComboBox _cbOk;
 
         /// <summary>
         /// Constructor
@@ -248,18 +249,23 @@ namespace XNSeguimentCompres.UI
         /// </summary>
         private void SetupOkCombo()
         {
-            // 🔹 Neteja d’opcions prèvies
+            // 🔹 Netejar opcions existents
             ClearValidValues(_cbOk.ValidValues);
 
-            // 🔹 Opcions disponibles després de guardar
-            _cbOk.ValidValues.Add("ADDNEW", "Afegir i nou");
-            _cbOk.ValidValues.Add("ADDVIEW", "Afegir i veure");
-            _cbOk.ValidValues.Add("ADDCLOSE", "Afegir i tancar");
+            // 🔹 Afegim només descripcions (el Value queda intern)
+            _cbOk.ValidValues.Add("ADDNEW", "Afegir i Nou");
+            _cbOk.ValidValues.Add("ADDVIEW", "Afegir i Veure");
+            _cbOk.ValidValues.Add("ADDCLOSE", "Afegir i Tancar");
 
-            // 🔹 Valor per defecte
+            // 🔹 Selecció per defecte: Afegir i Nou
             _cbOk.Select("ADDNEW", BoSearchKey.psk_ByValue);
-            _cbOk.Caption = _cbOk.Selected.Description;
+
+            // 🔹 Caption visible ha de ser sempre la descripció
+            if (_cbOk.Selected != null)
+                _cbOk.Caption = _cbOk.Selected.Description;
+
         }
+
 
         /// <summary>
         /// Controla la visibilitat/posició del botó OK estàndard i del combo personalitzat
@@ -353,32 +359,12 @@ namespace XNSeguimentCompres.UI
                 return;
             }
 
-            // ─────────────────────────────────────────────────────────────
-            // 2️⃣ COMBO_SELECT → NOMÉS DEFINICIÓ D’ACCIÓ
-            // ─────────────────────────────────────────────────────────────
-            if (pVal.EventType == BoEventTypes.et_COMBO_SELECT && pVal.ItemUID == "cbOkAct")
-            {
-                if (pVal.Before_Action)
-                {
-                    Logger.Log("IGNORED COMBO_SELECT → Before_Action=true");
-                    return;
-                }
-
-                // 🔹 Mantenim només el registre de la selecció
-                string val = _cbOk?.Selected?.Value ?? "(null)";
-                string desc = _cbOk?.Selected?.Description ?? "(null)";
-                Logger.Log($"USER COMBO_SELECT → {val} : {desc}");
-
-                _cbOk.Caption = desc;
-
-                return;
-            }
+            
 
             // ─────────────────────────────────────────────────────────────
             // 3️⃣ EXECUCIÓ DE GUARDAR → ITEM_PRESSED en boto combo
             // ─────────────────────────────────────────────────────────────
-            if (pVal.EventType == BoEventTypes.et_ITEM_PRESSED &&
-                pVal.ItemUID == "cbOkAct" &&
+            if (pVal.EventType == BoEventTypes.et_ITEM_PRESSED && pVal.ItemUID == "cbOkAct" &&
                 !pVal.Before_Action)
             {
                 if (_cbOk.Selected == null)
@@ -1226,6 +1212,9 @@ namespace XNSeguimentCompres.UI
                     return;
                 }
 
+                // ⬇️ Breakpoint A aquí
+                Logger.Log($"DEBUG → TryAdd completed → newDocEntry = {newDocEntry}");
+
                 if (_cbOk == null || _cbOk.Selected == null)
                 {
                     _ctx.App.StatusBar.SetText(
@@ -1245,11 +1234,19 @@ namespace XNSeguimentCompres.UI
                         break;
 
                     case "ADDVIEW":
+                        // ⬇️ Breakpoint B aquí
+                        Logger.Log($"ADDVIEW selected → newDocEntry = {newDocEntry}");
+
+                        // ✔ Assignar DocEntry a UserDataSource perquè la UI el conegui
                         _form.DataSources.UserDataSources.Item("DE").Value = newDocEntry.ToString();
+
+                        // ✔ Carregar el document acabat de crear
                         _loader.Load(newDocEntry);
-                        ((EditText)_form.Items.Item("tDocEntry").Specific).Value = newDocEntry.ToString();
+
+                        // ✔ Canviar a mode veure perquè es mostri OK i dades
                         _mode.SetVer();
                         UpdateOkUiByMode();
+
                         break;
 
                     case "ADDCLOSE":
